@@ -1,15 +1,30 @@
+from copy import deepcopy
 import networkx as nx
 
+
+class QuoridorError(Exception):
+    """Classe implémentant l'exception QuoridorError"""
+
 class Quoridor:
+    def position_valide(valide_j):
+        return isinstance(valide_j, (list, tuple)) and len(valide_j) == 2 and all(isinstance(x, int) and 1 <= x <= 9 for x in valide_j)
+    
+    def murv_valide(valide_murv):
+        return isinstance(valide_murv, (list, tuple)) and len(valide_murv) == 2 and all(isinstance(x, int) for x in valide_murv) and 2 <= valide_murv[0] <= 9 and 1 <= valide_murv[1] <= 8
+
+    def murh_valide(valide_murh):
+        return isinstance(valide_murh, (list, tuple)) and len(valide_murh) == 2 and all(isinstance(x, int) for x in valide_murh) and 1 <= valide_murh[0] <= 8 and 2 <= valide_murh[1] <= 9
+    
+    def murs_valide(cls, murh, murv):
+        for murh in enumerate(murh):
+            if not cls.murh_valide(murh):
+                raise QuoridorError("La position du mûr est invalide")
+
+        for murv in enumerate(murv):
+            if not cls.murv_valide(murv):
+                raise QuoridorError("La position du mûr est invalide")
+
     def __init__(self, joueurs, murs=None):
-        if isinstance(joueurs[0], str):
-            self.joueur1 = {'nom' : joueurs[0], 'murs' : 10, 'pos' : (5, 1)}
-            self.joueur2 = {'nom' : joueurs[1], 'murs' : 10, 'pos' : (5, 9)}
-        
-        elif isinstance(joueurs[0], dict):
-            self.joueur1 = {'nom' : joueurs[0]['nom'], 'murs' : joueurs[0]['murs'], 'pos' : joueurs[0]['pos']}
-            self.joueur2 = {'nom' : joueurs[1]['nom'], 'murs' : joueurs[1]['murs'], 'pos' : joueurs[1]['pos']}
-        
         if not isinstance(joueurs, list):
             raise QuoridorError("L'argument 'joueurs' n'est pas itérable.")
 
@@ -17,38 +32,33 @@ class Quoridor:
             raise QuoridorError("L'itérable de joueurs en contient un nombre différent de deux.")
 
         nb_murs = 0
+        self.etat = {"joueurs": [], "murs": None}
+        self.type = ""
+        self.position = None
+
+        for i, j in enumerate(joueurs):
+            if isinstance(j, dict):
+                if not (isinstance(j["murs"], int) and 0 <= j["murs"] <= 10):
+                    raise QuoridorError("Le nombre de murs qu'un joueur peut placer est > 10, négatif, ou invalide")
+                
+                if not self.position_valide(j["pos"]):
+                    raise QuoridorError("La position d'un des joueurs est invalide")
+                nb_murs += j["murs"]
+                self.etat["joueurs"].append(deepcopy(j))
+            else:
+                self.etat["joueurs"].append({"nom": j, "murs": 10, "pos": (5, 1 if i == 0 else 9)})
+
+        if nb_murs != 20:
+            raise QuoridorError("Le total des murs placés et plaçables n'est pas égal à 20.")
+        self.etat["murs"] = {"horizontaux": [], "verticaux": []} if murs is None else deepcopy(murs)
+        
         if murs is not None:
             if not isinstance(murs, dict):
                 raise QuoridorError("L'argument 'murs' n'est pas un dictionnaire lorsque présent.")
-            self.verticaux = murs['verticaux']
-            self.horizontaux = murs['horizontaux']
-        else:
-            self.verticaux = []
-            self.horizontaux = []
-
-        if murs is not None:
-            nb_murs += len(self.verticaux) + len(self.horizontaux)
-        
-        if nb_murs != 20:
-            raise QuoridorError("Le total des murs placés et plaçables n'est pas égal à 20.")
-
-        if self.joueur1['murs'] < 0 or self.joueur1['murs'] > 10:
-            raise QuoridorError("Le nombre de murs qu'un joueur peut placer est plus grand que 10,ou négatif")
-        if self.joueur2['murs'] < 0 or self.joueur2['murs'] > 10:
-            raise QuoridorError("Le nombre de murs qu'un joueur peut placer est plus grand que 10,ou négatif")
-
-        if not 1 <= self.joueur1['pos'][0] <= 9 or not 1 <= self.joueur1['pos'][1] <= 9:
-            raise QuoridorError("La position d'un joueur est invalide.")
-
-        if not 1 <= self.joueur2['pos'][0] <= 9 or not 1 <= self.joueur2['pos'][1] <= 9:
-            raise QuoridorError("La position d'un joueur est invalide.")
-
-        if self.joueur1['murs'] < 0 or self.joueur1['murs'] > 10:
-            raise QuoridorError("La position du mur est invalide.")
-
-        if self.joueur2['murs'] < 0 or self.joueur2['murs'] > 1:
-            raise QuoridorError("La position du mur est invalide.")
-
+            murh, murv = murs["horizontaux"], murs["verticaux"]
+            self.murs_valide(murh, murv)
+            graphe = construire_graphe([joueur["pos"] for joueur in self.etat["joueurs"]],murh, murv)
+            nb_murs += len(murh) + len(murv)
 
 
     def __str__(self):
@@ -151,8 +161,7 @@ class Quoridor:
             self.horizontaux.append(position)
 
 
-class QuoridorError(Exception):
-    """Classe implémentant l'exception QuoridorError"""
+
 
 
 def construire_graphe(joueurs, murs_horizontaux, murs_verticaux):

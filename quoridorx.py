@@ -86,3 +86,6 @@ class QuoridorX(Quoridor):
         else:
             turtle.title("QuoridorX")
         turtle.update()
+
+if __name__ == "__main__":
+    pass
