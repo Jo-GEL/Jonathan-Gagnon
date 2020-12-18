@@ -17,6 +17,8 @@ def analyser_commande():
     parser.add_argument('-a', dest="mode_auto", action='store_true', help='Activer le mode automatique')
     #Optional argument to activate graphic
     parser.add_argument('-x', dest="mode_graphique", action='store_true', help='Activer le mode graphique')
+    #Optional argument to activate automatic graphic mode
+    parser.add_argument('-ax', dest="mode_autographique", action='store_true', help='Activer le mode graphique')
     # optional arguments:
     parser.add_argument(
         '-p', '--parties', action='store_true', 
